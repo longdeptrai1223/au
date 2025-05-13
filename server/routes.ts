@@ -84,12 +84,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = schema.parse(req.body);
       const firebaseUid = req.user.uid;
       
-      // Set userId to Firebase UID if not provided
+      // Always set userId to Firebase UID to ensure it's defined
+      validatedData.userId = validatedData.userId || firebaseUid;
+      
+      // TypeScript validation - ensure userId is defined
       if (!validatedData.userId) {
-        validatedData.userId = firebaseUid;
+        throw new Error("userId is required");
       }
       
-      const activity = await storage.createMiningActivity(validatedData);
+      // Now TypeScript knows userId is not undefined
+      const activity = await storage.createMiningActivity({
+        ...validatedData,
+        userId: validatedData.userId
+      });
+      
       res.json(activity);
     } catch (error) {
       console.error("Error logging mining activity:", error);
@@ -107,12 +115,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = schema.parse(req.body);
       const firebaseUid = req.user.uid;
       
-      // Set userId to Firebase UID if not provided
+      // Always set userId to Firebase UID to ensure it's defined
+      validatedData.userId = validatedData.userId || firebaseUid;
+      
+      // TypeScript validation - ensure userId is defined
       if (!validatedData.userId) {
-        validatedData.userId = firebaseUid;
+        throw new Error("userId is required");
       }
       
-      const adView = await storage.createAdView(validatedData);
+      // Now TypeScript knows userId is not undefined
+      const adView = await storage.createAdView({
+        ...validatedData,
+        userId: validatedData.userId
+      });
+      
       res.json(adView);
     } catch (error) {
       console.error("Error logging ad view:", error);

@@ -177,26 +177,159 @@ export const MiningProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
     
     try {
-      // Normally, this would show an actual ad, but for now we'll just simulate it
-      // In production, you would integrate with AdMob here
-      
-      // Update ad boost time (adds 2 hours)
-      await updateAdBoostTime(user.uid, 2);
-      
-      // Add activity
-      await addActivity(user.uid, "ad_boost", "+200%", "Xem quảng cáo");
-      
-      toast({
-        title: "Boost Activated",
-        description: "You've received a mining boost of +200% for 2 hours!",
+      // This function will show a real AdMob rewarded ad
+      return new Promise<void>((resolve, reject) => {
+        // Check if AdMob is available
+        if (!window.google || !window.google.ima) {
+          // Load Google IMA SDK if not already loaded
+          const script = document.createElement('script');
+          script.src = 'https://imasdk.googleapis.com/js/sdkloader/ima3.js';
+          script.async = true;
+          script.onload = () => {
+            initializeAdMob(resolve, reject);
+          };
+          script.onerror = () => {
+            console.error("Error loading IMA SDK");
+            reject(new Error("Failed to load ad SDK"));
+          };
+          document.body.appendChild(script);
+        } else {
+          // IMA SDK already loaded
+          initializeAdMob(resolve, reject);
+        }
+      })
+      .then(async () => {
+        // Ad was successfully watched, apply boost
+        // Update ad boost time (adds 2 hours)
+        await updateAdBoostTime(user.uid, 2);
+        
+        // Add activity
+        await addActivity(user.uid, "ad_boost", "+200%", "Xem quảng cáo");
+        
+        toast({
+          title: "Boost Activated",
+          description: "You've received a mining boost of +200% for 2 hours!",
+        });
       });
     } catch (error) {
       console.error("Ad boost error:", error);
       toast({
         title: "Boost Failed",
-        description: "There was a problem activating your boost.",
+        description: "There was a problem activating your boost. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+  
+  // Note: We've moved the Google IMA SDK type definitions to client/src/types/ima-sdk.d.ts
+
+  // Helper function to initialize and show AdMob rewarded ad
+  const initializeAdMob = (resolve: () => void, reject: (reason?: any) => void) => {
+    const adContainer = document.createElement('div');
+    adContainer.style.position = 'fixed';
+    adContainer.style.zIndex = '1000';
+    adContainer.style.top = '0';
+    adContainer.style.left = '0';
+    adContainer.style.width = '100%';
+    adContainer.style.height = '100%';
+    adContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    document.body.appendChild(adContainer);
+    
+    // Get AdMob Rewarded ID from environment variables
+    const adUnit = import.meta.env.VITE_ADMOB_REWARDED_ID || '';
+    
+    if (!adUnit) {
+      console.error("Missing AdMob Rewarded ID");
+      document.body.removeChild(adContainer);
+      reject(new Error("Missing AdMob configuration"));
+      return;
+    }
+    
+    try {
+      // Make sure Google IMA is available
+      if (!window.google || !window.google.ima) {
+        throw new Error("Google IMA SDK not available");
+      }
+      
+      // Since we've checked above that google & ima are not undefined, we can safely use them
+      const google = window.google;
+      
+      // Initialize Google IMA ads
+      const adDisplayContainer = new google.ima.AdDisplayContainer(adContainer);
+      adDisplayContainer.initialize();
+      
+      const adsLoader = new google.ima.AdsLoader(adDisplayContainer);
+      const adsRequest = new google.ima.AdsRequest();
+      
+      // Specify the ad unit
+      adsRequest.adTagUrl = `https://googleads.g.doubleclick.net/pagead/ads?ad_type=video_image&client=ca-video-pub-${adUnit}&description_url=${encodeURIComponent(window.location.href)}&videoad_start_delay=0&hl=vi`;
+      
+      // Specify ad size
+      adsRequest.linearAdSlotWidth = window.innerWidth;
+      adsRequest.linearAdSlotHeight = window.innerHeight;
+      adsRequest.nonLinearAdSlotWidth = window.innerWidth;
+      adsRequest.nonLinearAdSlotHeight = window.innerHeight;
+      
+      // Request ad
+      adsLoader.requestAds(adsRequest);
+      
+      // Handle ad events
+      adsLoader.addEventListener(
+        google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,
+        (event: any) => {
+          // Get the ads manager
+          const adsManager = event.getAdsManager();
+          
+          // Add event listeners
+          adsManager.addEventListener(
+            google.ima.AdEvent.Type.COMPLETE,
+            () => {
+              adsManager.destroy();
+              document.body.removeChild(adContainer);
+              resolve(); // User completed watching ad
+            }
+          );
+          
+          adsManager.addEventListener(
+            google.ima.AdEvent.Type.SKIPPED,
+            () => {
+              adsManager.destroy();
+              document.body.removeChild(adContainer);
+              reject(new Error("Ad was skipped")); // User skipped ad
+            }
+          );
+          
+          adsManager.addEventListener(
+            google.ima.AdEvent.Type.ERROR,
+            () => {
+              adsManager.destroy();
+              document.body.removeChild(adContainer);
+              reject(new Error("Ad error")); // Ad error
+            }
+          );
+          
+          // Start ad
+          adsManager.init(
+            window.innerWidth,
+            window.innerHeight,
+            google.ima.ViewMode.NORMAL
+          );
+          adsManager.start();
+        }
+      );
+      
+      adsLoader.addEventListener(
+        google.ima.AdErrorEvent.Type.AD_ERROR,
+        (event: any) => {
+          console.error("Ad Error:", event.getError());
+          document.body.removeChild(adContainer);
+          reject(new Error("Ad error"));
+        }
+      );
+    } catch (error) {
+      console.error("AdMob initialization error:", error);
+      document.body.removeChild(adContainer);
+      reject(error);
     }
   };
 
