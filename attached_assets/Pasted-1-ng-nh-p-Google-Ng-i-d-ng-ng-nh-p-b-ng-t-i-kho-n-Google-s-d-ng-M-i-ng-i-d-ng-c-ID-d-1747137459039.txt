@@ -1,0 +1,97 @@
+1. ✅ Đăng nhập Google
+Người dùng đăng nhập bằng tài khoản Google để sử dụng.
+
+Mỗi người dùng có ID duy nhất để theo dõi lượt mời, lượt đào và thông tin cá nhân.
+
+2. ⏳ Cơ chế đào Au theo chu kỳ 24 giờ
+Người dùng nhấn nút "Start" để bắt đầu phiên đào kéo dài 24 giờ.
+
+Sau 24 giờ:
+
+Có thể nhấn nút "Nhận thưởng" để nhận 0.1 Au.
+
+Sau khi nhận thưởng, phải nhấn lại "Start" để khởi động chu kỳ tiếp theo.
+
+⚠️ Nếu không đăng nhập đúng hạn:
+
+✅ Người dùng vẫn giữ lại lượng Au đã đủ điều kiện nhận.
+
+❌ Tuy nhiên, không thể tiếp tục đào cho đến khi nhấn lại nút "Start".
+
+3. 💡 Không hỗ trợ offline
+Ứng dụng cần có kết nối mạng để hoạt động.
+
+Tất cả dữ liệu và tiến trình đào đều được lưu và xử lý trực tuyến qua Firebase Firestore.
+
+4. 👥 Tăng hiệu suất từ lời mời bạn bè
+Mỗi lượt mời thành công: +0.1 tốc độ đào (buff vĩnh viễn).
+
+Tối đa: *20 người = 2.0 hiệu suất.
+
+Vượt quá 20 lượt mời sẽ không nhận thêm buff.
+
+5. 🎥 Tăng hiệu suất tạm thời bằng cách xem quảng cáo
+Mỗi quảng cáo rewarded xem xong sẽ *+5 hiệu suất trong 2 giờ.
+
+Có thể xem nhiều lần để cộng dồn thời gian.
+
+Tổng thời gian buff quảng cáo: tối đa 24 giờ.
+
+⚠️ Tổng hiệu suất (buff lời mời + buff quảng cáo) *không vượt quá 10.
+
+6. 📊 Bảng điều khiển người dùng
+Hiển thị:
+
+Tổng số Au đã đào.
+
+Số lượt mời thành công.
+
+Tốc độ đào hiện tại.
+
+Thời gian còn lại của buff quảng cáo.
+
+Lịch sử hoạt động (log đào & mời bạn).
+
+7. 🔔 Thông báo đẩy (Push Notifications)
+Gửi thông báo khi:
+
+Đến lúc nhận thưởng (sau 24h).
+
+Buff quảng cáo sắp hết.
+
+Nhắc người dùng quay lại ứng dụng.
+
+8. 🔗 Chia sẻ & mời bạn
+Mỗi người có một mã mời riêng (user ID).
+
+Gửi link giới thiệu để mời bạn bè tham gia.
+
+9. 🛠️ Hệ thống và công nghệ sử dụng
+📦 Firebase
+Auth: đăng nhập Google.
+
+Firestore: lưu dữ liệu người dùng, thời gian đào, trạng thái buff.
+
+Messaging: gửi thông báo đẩy.
+
+💸 AdMob
+Tích hợp quảng cáo rewarded thật, không mô phỏng.
+
+Có thể kết hợp banner nếu cần (tùy chỉnh).
+
+🌐 Triển khai ứng dụng
+Web App viết bằng: React / Vue / Vite.
+
+GitHub: quản lý mã nguồn.
+
+Netlify: host web app.
+
+PWA Builder + TWA: đóng gói web app thành Android App.
+
+Ứng dụng dạng TWA, không hỗ trợ offline.
+
+🧠 Cơ sở dữ liệu mở rộng
+Firebase Firestore: lưu core logic và hoạt động thời gian thực.
+
+Neon PostgreSQL (nếu cần): dùng cho dữ liệu phân tích, báo cáo, hoặc scale lớn.
+
