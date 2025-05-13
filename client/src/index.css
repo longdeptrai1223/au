@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 100% 59%; /* Red #FF3B30 */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --accent: 51 100% 50%; /* Gold #FFD700 */
+  --accent-foreground: 0 0% 20%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 240 4.9% 83.9%;
+  --chart-1: 51 100% 50%; /* Gold */
+  --chart-2: 177 59% 56%; /* Teal */
+  --chart-3: 0 100% 59%; /* Red */
+  --chart-4: 224 100% 58%; /* Blue */
+  --chart-5: 142 71% 45%; /* Green */
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply font-sans antialiased bg-[#121212] text-foreground;
+  }
+  
+  /* Custom classes for app specific styling */
+  .dark-surface {
+    @apply bg-[#1E1E1E];
+  }
+  
+  .dark-lighter {
+    @apply bg-[#2C2C2C];
+  }
+  
+  .text-gold {
+    @apply text-[#FFD700];
+  }
+  
+  .bg-gold {
+    @apply bg-[#FFD700];
+  }
+  
+  .text-teal {
+    @apply text-[#4CD4C8];
+  }
+  
+  .bg-teal {
+    @apply bg-[#4CD4C8];
+  }
+  
+  .mining-ring {
+    stroke-dasharray: 440;
+    transform-origin: center;
+    transform: rotate(-90deg);
+  }
+}
