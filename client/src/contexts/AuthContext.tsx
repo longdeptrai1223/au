@@ -1,4 +1,3 @@
-// client/src/contexts/AuthContext.tsx
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from 'firebase/auth';
 import { auth, onAuthStateChanged, getUserData, createUserProfile, checkReferralCode, addReferral, signInWithGoogle, signOut as firebaseSignOut, getRedirectResult } from '../lib/firebase';
@@ -36,13 +35,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         if (authUser) {
           // Lấy token
-          const token = await authUser.getIdToken(true); // Force refresh token
+          const token = await authUser.getIdToken(true);
           console.log('Token obtained:', token.substring(0, 10) + '...');
           
           // Lưu token vào localStorage
           localStorage.setItem('firebaseToken', token);
           
-          // Gửi token lên server
+          // Gửi token lên server với credentials
           const response = await fetch('/api/set-token', {
             method: 'POST',
             credentials: 'include',
@@ -53,11 +52,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             },
           });
           
+          // Log chi tiết response
           console.log('Server response:', {
             status: response.status,
             ok: response.ok,
             headers: Object.fromEntries(response.headers.entries())
           });
+
+          const responseData = await response.json();
+          console.log('Response data:', responseData);
 
           if (!response.ok) {
             throw new Error(`Server responded with status: ${response.status}`);
@@ -157,6 +160,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       await firebaseSignOut();
       localStorage.removeItem('firebaseToken');
+      // Xóa cookie khi đăng xuất
+      document.cookie = 'firebaseToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
       toast({
         title: "Signed Out",
         description: "You have been signed out successfully.",

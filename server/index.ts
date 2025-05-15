@@ -1,4 +1,3 @@
-// VietnamGreeter/server/index.ts
 import express, { type Request, Response, NextFunction } from "express";
 import cors from 'cors';
 import { registerRoutes } from "./routes";
@@ -14,8 +13,10 @@ const app = express();
 
 // Cấu hình CORS
 app.use(cors({
-  origin: true, // Cho phép tất cả các origin trong development
-  credentials: true // Cho phép gửi cookies
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
 
 // Phục vụ file tĩnh từ client/public/

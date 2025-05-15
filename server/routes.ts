@@ -4,15 +4,8 @@ import { storage } from "./storage";
 import { initFirebaseAdmin, auth } from "./firebase-admin";
 import { insertMiningActivitySchema, insertAdViewSchema } from "@shared/schema";
 import { z } from "zod";
-import cors from 'cors';
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Thêm middleware CORS
-  app.use(cors({
-    origin: true,
-    credentials: true
-  }));
-
   initFirebaseAdmin();
 
   const verifyToken = async (req: any, res: any, next: any) => {
@@ -43,13 +36,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ message: "Token is required" });
     }
 
+    // Cấu hình cookie cho cả development và production
+    const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('firebaseToken', token, {
       httpOnly: true,
-      secure: false, // Set to true in production
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: 3600000, // 1 hour
       path: '/',
-      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost'
+      domain: isProduction ? process.env.COOKIE_DOMAIN : 'localhost'
     });
     
     res.json({ success: true });
