@@ -1,10 +1,11 @@
 import { initializeApp } from "firebase/app";
 import { 
   getAuth, 
-  signInWithRedirect, 
+  signInWithPopup,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   onAuthStateChanged,
+  getRedirectResult,
   User
 } from "firebase/auth";
 import { 
@@ -39,7 +40,7 @@ const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
 // Authentication functions
-export const signInWithGoogle = () => signInWithRedirect(auth, googleProvider);
+export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
 export const signOut = () => firebaseSignOut(auth);
 
 // User functions
@@ -183,4 +184,4 @@ function generateReferralCode(length: number): string {
   return result;
 }
 
-export { auth, db, onAuthStateChanged };
+export { auth, db, onAuthStateChanged, getRedirectResult };

@@ -1,7 +1,7 @@
 // client/src/contexts/AuthContext.tsx
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from 'firebase/auth';
-import { auth, onAuthStateChanged, getUserData, createUserProfile, checkReferralCode, addReferral, signInWithGoogle, signOut as firebaseSignOut } from '../lib/firebase';
+import { auth, onAuthStateChanged, getUserData, createUserProfile, checkReferralCode, addReferral, signInWithGoogle, signOut as firebaseSignOut, getRedirectResult } from '../lib/firebase';
 import { useToast } from '../hooks/use-toast';
 
 interface AuthContextProps {
@@ -29,13 +29,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
-      console.log('Auth state changed:', authUser ? 'User logged in' : 'No user');
+    let isSubscribed = true;
+
+    const handleAuth = async (authUser: User | null) => {
+      console.log('Starting auth process:', { authUser: !!authUser });
       try {
         if (authUser) {
           // Lấy token
-          const token = await authUser.getIdToken();
-          console.log('Token obtained successfully');
+          const token = await authUser.getIdToken(true); // Force refresh token
+          console.log('Token obtained:', token.substring(0, 10) + '...');
           
           // Lưu token vào localStorage
           localStorage.setItem('firebaseToken', token);
@@ -51,54 +53,94 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             },
           });
           
+          console.log('Server response:', {
+            status: response.status,
+            ok: response.ok,
+            headers: Object.fromEntries(response.headers.entries())
+          });
+
           if (!response.ok) {
             throw new Error(`Server responded with status: ${response.status}`);
           }
           
-          console.log('Token set on server successfully');
-          
-          // Set user state
-          setUser(authUser);
-          
-          // Lấy và set user profile
-          try {
-            const profile = await createUserProfile(authUser);
-            setUserData(profile);
-            console.log('User profile loaded successfully');
-          } catch (profileError) {
-            console.error('Error loading user profile:', profileError);
-            toast({
-              title: "Error",
-              description: "Could not load user profile",
-              variant: "destructive",
-            });
+          if (isSubscribed) {
+            setUser(authUser);
+            
+            // Lấy và set user profile
+            try {
+              const profile = await createUserProfile(authUser);
+              if (isSubscribed) {
+                setUserData(profile);
+                console.log('User profile loaded successfully:', profile);
+              }
+            } catch (profileError) {
+              console.error('Error loading user profile:', profileError);
+              toast({
+                title: "Error",
+                description: "Could not load user profile",
+                variant: "destructive",
+              });
+            }
           }
         } else {
           console.log('No user found, clearing states');
+          if (isSubscribed) {
+            setUser(null);
+            setUserData(null);
+            localStorage.removeItem('firebaseToken');
+          }
+        }
+      } catch (error) {
+        console.error('Detailed auth error:', {
+          error,
+          message: error.message,
+          stack: error.stack
+        });
+        if (isSubscribed) {
           setUser(null);
           setUserData(null);
           localStorage.removeItem('firebaseToken');
+          toast({
+            title: "Authentication Error",
+            description: "There was a problem with authentication",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        if (isSubscribed) {
+          setLoading(false);
+        }
+      }
+    };
+
+    // Xử lý kết quả redirect khi load trang
+    const handleInitialAuth = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          console.log('Got redirect result:', result.user.email);
+          await handleAuth(result.user);
         }
       } catch (error) {
-        console.error('Authentication error:', error);
-        setUser(null);
-        setUserData(null);
-        localStorage.removeItem('firebaseToken');
-        toast({
-          title: "Authentication Error",
-          description: "There was a problem with authentication",
-          variant: "destructive",
-        });
-      } finally {
+        console.error('Redirect result error:', error);
         setLoading(false);
       }
-    });
+    };
 
-    return () => unsubscribe();
+    handleInitialAuth();
+
+    // Theo dõi thay đổi trạng thái auth
+    const unsubscribe = onAuthStateChanged(auth, handleAuth);
+
+    return () => {
+      isSubscribed = false;
+      unsubscribe();
+    };
   }, [toast]);
 
   const signIn = async () => {
     try {
+      setLoading(true);
       await signInWithGoogle();
     } catch (error) {
       console.error("Sign in error:", error);
@@ -107,6 +149,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         description: "There was a problem signing in with Google.",
         variant: "destructive",
       });
+      setLoading(false);
     }
   };
 

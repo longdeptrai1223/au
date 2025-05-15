@@ -1,12 +1,18 @@
-// server/routes.ts
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { initFirebaseAdmin, auth } from "./firebase-admin";
 import { insertMiningActivitySchema, insertAdViewSchema } from "@shared/schema";
 import { z } from "zod";
+import cors from 'cors';
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Thêm middleware CORS
+  app.use(cors({
+    origin: true,
+    credentials: true
+  }));
+
   initFirebaseAdmin();
 
   const verifyToken = async (req: any, res: any, next: any) => {
@@ -39,16 +45,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     res.cookie('firebaseToken', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // Chỉ bật secure trong production
-      sameSite: 'lax',  // Thay đổi từ 'none' sang 'lax'
-      maxAge: 3600000, // Cookie tồn tại 1 giờ
-      path: '/' // Đảm bảo cookie có thể truy cập từ mọi path
+      secure: false, // Set to true in production
+      sameSite: 'lax',
+      maxAge: 3600000, // 1 hour
+      path: '/',
+      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost'
     });
     
     res.json({ success: true });
   });
-
-  // ... các route khác giữ nguyên ...
 
   const httpServer = createServer(app);
   return httpServer;

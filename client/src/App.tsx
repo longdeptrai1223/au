@@ -9,25 +9,31 @@ import LoadingOverlay from "./components/LoadingOverlay";
 
 function App() {
   const [location, setLocation] = useLocation();
-  const { user, loading } = useAuth();
+  const { user, loading, userData } = useAuth();
 
   useEffect(() => {
     if (!loading) {
       const token = localStorage.getItem('firebaseToken');
-      console.log('Current location:', location);
-      console.log('Has token:', !!token);
-      console.log('Has user:', !!user);
+      console.log('Auth State:', {
+        location,
+        hasToken: !!token,
+        hasUser: !!user,
+        loading,
+        hasUserData: !!userData
+      });
       
-      if (user && token && location === "/login") {
-        console.log('Redirecting to home');
+      // Chỉ chuyển hướng khi đã load xong và có đủ thông tin
+      if (user && token && userData && location === "/login") {
+        console.log('Redirecting to home - User authenticated');
         setLocation("/");
       } else if (!user && !token && location !== "/login") {
-        console.log('Redirecting to login');
+        console.log('Redirecting to login - No authentication');
         setLocation("/login");
       }
     }
-  }, [user, loading, location, setLocation]);
+  }, [user, loading, location, setLocation, userData]);
 
+  // Hiển thị loading khi đang trong quá trình xác thực
   if (loading) {
     return <LoadingOverlay />;
   }
