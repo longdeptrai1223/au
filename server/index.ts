@@ -23,22 +23,29 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Serve static files
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client')));
-}
-
-// Routes
+// API routes
 const server = await registerRoutes(app);
 
-// Handle client-side routing
-app.get('*', (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
-    res.sendFile(path.join(__dirname, '../client/index.html'));
-  }
-});
+// Serve static files from dist/client
+if (process.env.NODE_ENV === 'production') {
+  // Đường dẫn tới thư mục dist/client
+  const clientPath = path.join(__dirname, '../../dist/client');
+  console.log('Serving static files from:', clientPath);
+  
+  // Serve static files
+  app.use(express.static(clientPath));
+  
+  // Serve index.html for all routes không phải /api
+  app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+      res.sendFile(path.join(clientPath, 'index.html'));
+    }
+  });
+}
 
 const port = process.env.PORT || 5000;
 server.listen(port, () => {
   console.log(`Server running on port ${port}`);
+  console.log('Environment:', process.env.NODE_ENV);
+  console.log('Current directory:', __dirname);
 });
