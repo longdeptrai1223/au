@@ -1,4 +1,4 @@
-// client/src/App.tsx
+// VietnamGreeter/client/src/App.tsx
 import { useLocation, Switch, Route } from "wouter";
 import { useEffect } from "react";
 import { useAuth } from "./contexts/AuthContext";
@@ -12,25 +12,34 @@ function App() {
   const { user, loading, userData } = useAuth();
 
   useEffect(() => {
-    if (!loading) {
-      const token = localStorage.getItem('firebaseToken');
-      console.log('Auth State:', {
-        location,
-        hasToken: !!token,
-        hasUser: !!user,
-        loading,
-        hasUserData: !!userData
-      });
-      
-      // Chỉ chuyển hướng khi đã load xong và có đủ thông tin
-      if (user && token && userData && location === "/login") {
-        console.log('Redirecting to home - User authenticated');
-        setLocation("/");
-      } else if (!user && !token && location !== "/login") {
-        console.log('Redirecting to login - No authentication');
-        setLocation("/login");
+    const handleNavigation = async () => {
+      if (!loading) {
+        const token = localStorage.getItem('firebaseToken');
+        console.log('Auth State:', {
+          currentLocation: location,
+          hasToken: !!token,
+          hasUser: !!user,
+          loading,
+          hasUserData: !!userData
+        });
+
+        // Nếu đang ở trang login và đã đăng nhập thành công
+        if (location === "/login" && user && token) {
+          console.log('Redirecting from login to home - User is authenticated');
+          setLocation("/");
+          return;
+        }
+
+        // Nếu không ở trang login và chưa đăng nhập
+        if (location !== "/login" && (!user || !token)) {
+          console.log('Redirecting to login - No authentication');
+          setLocation("/login");
+          return;
+        }
       }
-    }
+    };
+
+    handleNavigation();
   }, [user, loading, location, setLocation, userData]);
 
   // Hiển thị loading khi đang trong quá trình xác thực
@@ -38,10 +47,34 @@ function App() {
     return <LoadingOverlay />;
   }
 
+  // Bảo vệ các route yêu cầu đăng nhập
+  const PrivateRoute = ({ component: Component, ...rest }: any) => {
+    if (!user) {
+      console.log('Access denied - redirecting to login');
+      setLocation("/login");
+      return null;
+    }
+    return <Component {...rest} />;
+  };
+
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/login" component={Login} />
+      <Route 
+        path="/" 
+        component={() => <PrivateRoute component={Dashboard} />} 
+      />
+      <Route 
+        path="/login" 
+        component={() => {
+          // Nếu đã đăng nhập, chuyển về trang chủ
+          if (user) {
+            console.log('User already logged in - redirecting to home');
+            setLocation("/");
+            return null;
+          }
+          return <Login />;
+        }} 
+      />
       <Route component={NotFound} />
     </Switch>
   );

@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // Lưu token vào localStorage
           localStorage.setItem('firebaseToken', token);
           
-          // Gửi token lên server với credentials
+          // Gửi token lên server
           const response = await fetch('/api/set-token', {
             method: 'POST',
             credentials: 'include',
@@ -52,38 +52,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             },
           });
           
-          // Log chi tiết response
           console.log('Server response:', {
             status: response.status,
             ok: response.ok,
             headers: Object.fromEntries(response.headers.entries())
           });
 
-          const responseData = await response.json();
-          console.log('Response data:', responseData);
-
           if (!response.ok) {
             throw new Error(`Server responded with status: ${response.status}`);
           }
-          
+
+          // Set user state trước khi lấy profile
           if (isSubscribed) {
             setUser(authUser);
-            
-            // Lấy và set user profile
-            try {
-              const profile = await createUserProfile(authUser);
-              if (isSubscribed) {
-                setUserData(profile);
-                console.log('User profile loaded successfully:', profile);
-              }
-            } catch (profileError) {
-              console.error('Error loading user profile:', profileError);
-              toast({
-                title: "Error",
-                description: "Could not load user profile",
-                variant: "destructive",
-              });
+          }
+          
+          // Lấy user profile
+          try {
+            const profile = await createUserProfile(authUser);
+            if (isSubscribed) {
+              setUserData(profile);
+              console.log('User profile loaded successfully:', profile);
+              
+              // Chuyển hướng sau khi có đầy đủ thông tin
+              window.location.href = '/';
             }
+          } catch (profileError) {
+            console.error('Error loading user profile:', profileError);
+            toast({
+              title: "Error",
+              description: "Could not load user profile",
+              variant: "destructive",
+            });
           }
         } else {
           console.log('No user found, clearing states');
@@ -91,14 +91,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(null);
             setUserData(null);
             localStorage.removeItem('firebaseToken');
+            // Chuyển về trang login khi không có user
+            window.location.href = '/login';
           }
         }
       } catch (error) {
-        console.error('Detailed auth error:', {
-          error,
-          message: error.message,
-          stack: error.stack
-        });
+        console.error('Detailed auth error:', error);
         if (isSubscribed) {
           setUser(null);
           setUserData(null);
@@ -108,6 +106,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             description: "There was a problem with authentication",
             variant: "destructive",
           });
+          // Chuyển về trang login khi có lỗi
+          window.location.href = '/login';
         }
       } finally {
         if (isSubscribed) {
