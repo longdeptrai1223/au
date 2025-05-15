@@ -1,13 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from 'firebase/auth';
-import { 
-  auth, 
-  onAuthStateChanged, 
-  getUserData, 
-  createUserProfile,
-  checkReferralCode, 
-  addReferral 
-} from '../lib/firebase';
+import { auth, onAuthStateChanged, getUserData, createUserProfile, checkReferralCode, addReferral, signInWithGoogle, signOut as firebaseSignOut } from '../lib/firebase';
 import { useToast } from '../hooks/use-toast';
 
 interface AuthContextProps {
@@ -35,16 +28,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check for referral code in URL
     const checkForReferral = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const referralCode = urlParams.get('ref');
-      
       if (referralCode) {
-        // Store the referral code in localStorage to use after authentication
         localStorage.setItem('referralCode', referralCode);
-        
-        // Remove the referral parameter from URL to keep it clean
         const newUrl = window.location.pathname;
         window.history.replaceState({}, document.title, newUrl);
       }
@@ -52,17 +40,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     checkForReferral();
 
-    // Listen for auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
       try {
         if (authUser) {
+          const token = await authUser.getIdToken();
+          localStorage.setItem('firebaseToken', token);
+          await fetch('/api/set-token', {
+            method: 'POST',
+            credentials: 'include',
+            body: JSON.stringify({ token }),
+            headers: { 'Content-Type': 'application/json' },
+          });
           setUser(authUser);
-          
-          // Create or get user profile
           const profile = await createUserProfile(authUser);
           setUserData(profile);
-          
-          // Check if there's a stored referral code
           const storedReferralCode = localStorage.getItem('referralCode');
           if (storedReferralCode && !profile.referredBy) {
             const referrerId = await checkReferralCode(storedReferralCode);
@@ -72,13 +63,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 title: "Referral Applied",
                 description: "You've joined through a referral link!",
               });
-              // Clear the stored referral code
               localStorage.removeItem('referralCode');
             }
           }
         } else {
           setUser(null);
           setUserData(null);
+          localStorage.removeItem('firebaseToken');
         }
       } catch (error) {
         console.error("Auth error:", error);
@@ -97,8 +88,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async () => {
     try {
-      // Implemented in App.tsx using Firebase redirect
-      const { signInWithGoogle } = await import('../lib/firebase');
       await signInWithGoogle();
     } catch (error) {
       console.error("Sign in error:", error);
@@ -112,7 +101,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
-      const { signOut: firebaseSignOut } = await import('../lib/firebase');
       await firebaseSignOut();
       toast({
         title: "Signed Out",

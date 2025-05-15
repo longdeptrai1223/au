@@ -10,15 +10,12 @@ function App() {
   const [location, setLocation] = useLocation();
   const { user, loading } = useAuth();
 
-  // Redirect based on auth status
   useEffect(() => {
     if (!loading) {
-      // If user is authenticated but on login page, redirect to dashboard
+      const token = localStorage.getItem('firebaseToken');
       if (user && location === "/login") {
         setLocation("/");
-      }
-      // If user is not authenticated and not on login page, redirect to login
-      else if (!user && location !== "/login") {
+      } else if (!user && !token && location !== "/login") {
         setLocation("/login");
       }
     }

@@ -18,6 +18,7 @@ self.addEventListener('install', event => {
         return cache.addAll(ASSETS_TO_CACHE);
       })
       .then(() => self.skipWaiting())
+      .catch(error => console.error('Failed to cache assets:', error))
   );
 });
 
@@ -45,20 +46,18 @@ self.addEventListener('fetch', event => {
     return;
   }
   
-  // Skip API requests
-  if (event.request.url.includes('/api/')) {
+  // Skip API requests and requests with cookies
+  if (event.request.url.includes('/api/') || event.request.headers.get('Cookie')) {
+    event.respondWith(fetch(event.request));
     return;
   }
   
   event.respondWith(
     caches.match(event.request)
       .then(cachedResponse => {
-        // Return cached response if found
         if (cachedResponse) {
-          // Also fetch to update cache in background
           fetch(event.request)
             .then(response => {
-              // Update cache if successful
               if (response.ok) {
                 caches.open(CACHE_NAME).then(cache => {
                   cache.put(event.request, response.clone());
@@ -70,18 +69,19 @@ self.addEventListener('fetch', event => {
           return cachedResponse;
         }
         
-        // Otherwise fetch from network
         return fetch(event.request)
           .then(response => {
-            // Return the response but also update cache
             if (response.ok) {
               const responseToCache = response.clone();
               caches.open(CACHE_NAME).then(cache => {
                 cache.put(event.request, responseToCache);
               });
             }
-            
             return response;
+          })
+          .catch(error => {
+            console.error('Fetch failed:', error);
+            throw error;
           });
       })
   );
@@ -122,6 +122,5 @@ self.addEventListener('notificationclick', event => {
 
 // Helper function for background sync
 async function syncMiningData() {
-  // Implementation would go here
   console.log('Syncing mining data in background');
 }
