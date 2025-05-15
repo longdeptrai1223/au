@@ -21,8 +21,13 @@ export default defineConfig({
   },
   root: path.resolve(import.meta.dirname, "client"),
   build: {
-    outDir: "dist/client",
-    emptyOutDir: true
+    outDir: path.resolve(__dirname, "dist/client"),
+    emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, "client/index.html")
+      }
+    }
   },
   server: {
     proxy: {
