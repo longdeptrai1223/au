@@ -1,4 +1,6 @@
+// VietnamGreeter/server/index.ts
 import express, { type Request, Response, NextFunction } from "express";
+import cors from 'cors';
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import cookieParser from 'cookie-parser';
@@ -9,6 +11,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// Cấu hình CORS
+app.use(cors({
+  origin: true, // Cho phép tất cả các origin trong development
+  credentials: true // Cho phép gửi cookies
+}));
 
 // Phục vụ file tĩnh từ client/public/
 app.use(express.static(path.join(__dirname, '../client/public')));
