@@ -23,18 +23,21 @@ function App() {
           hasUserData: !!userData
         });
 
-        // Nếu đang ở trang login và đã đăng nhập thành công
-        if (location === "/login" && user && token) {
-          console.log('Redirecting from login to home - User is authenticated');
-          setLocation("/");
-          return;
-        }
+        // Chỉ chuyển hướng khi không trong quá trình loading
+        if (!loading) {
+          // Nếu đang ở trang login và đã đăng nhập thành công
+          if (location === "/login" && user && token && userData) {
+            console.log('Redirecting from login to home - User is authenticated');
+            setLocation("/");
+            return;
+          }
 
-        // Nếu không ở trang login và chưa đăng nhập
-        if (location !== "/login" && (!user || !token)) {
-          console.log('Redirecting to login - No authentication');
-          setLocation("/login");
-          return;
+          // Nếu không ở trang login và chưa đăng nhập
+          if (location !== "/login" && (!user || !token)) {
+            console.log('Redirecting to login - No authentication');
+            setLocation("/login");
+            return;
+          }
         }
       }
     };
@@ -47,30 +50,27 @@ function App() {
     return <LoadingOverlay />;
   }
 
-  // Bảo vệ các route yêu cầu đăng nhập
-  const PrivateRoute = ({ component: Component, ...rest }: any) => {
-    if (!user) {
-      console.log('Access denied - redirecting to login');
-      setLocation("/login");
-      return null;
-    }
-    return <Component {...rest} />;
-  };
-
   return (
     <Switch>
       <Route 
         path="/" 
-        component={() => <PrivateRoute component={Dashboard} />} 
+        component={() => {
+          if (!user || !userData) {
+            console.log('Access denied - redirecting to login');
+            setLocation("/login");
+            return <LoadingOverlay />;
+          }
+          return <Dashboard />;
+        }} 
       />
       <Route 
         path="/login" 
         component={() => {
           // Nếu đã đăng nhập, chuyển về trang chủ
-          if (user) {
+          if (user && userData) {
             console.log('User already logged in - redirecting to home');
             setLocation("/");
-            return null;
+            return <LoadingOverlay />;
           }
           return <Login />;
         }} 

@@ -1,3 +1,4 @@
+// VietnamGreeter/client/src/contexts/AuthContext.tsx
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from 'firebase/auth';
 import { auth, onAuthStateChanged, getUserData, createUserProfile, checkReferralCode, addReferral, signInWithGoogle, signOut as firebaseSignOut, getRedirectResult } from '../lib/firebase';
@@ -73,9 +74,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (isSubscribed) {
               setUserData(profile);
               console.log('User profile loaded successfully:', profile);
-              
-              // Chuyển hướng sau khi có đầy đủ thông tin
-              window.location.href = '/';
+              // Xóa chuyển hướng tự động ở đây
+              setLoading(false);
             }
           } catch (profileError) {
             console.error('Error loading user profile:', profileError);
@@ -91,8 +91,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(null);
             setUserData(null);
             localStorage.removeItem('firebaseToken');
-            // Chuyển về trang login khi không có user
-            window.location.href = '/login';
+            // Xóa chuyển hướng tự động ở đây
+            setLoading(false);
           }
         }
       } catch (error) {
@@ -106,11 +106,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             description: "There was a problem with authentication",
             variant: "destructive",
           });
-          // Chuyển về trang login khi có lỗi
-          window.location.href = '/login';
-        }
-      } finally {
-        if (isSubscribed) {
           setLoading(false);
         }
       }
@@ -123,6 +118,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (result?.user) {
           console.log('Got redirect result:', result.user.email);
           await handleAuth(result.user);
+        } else {
+          setLoading(false);
         }
       } catch (error) {
         console.error('Redirect result error:', error);
@@ -158,6 +155,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
+      setLoading(true);
       await firebaseSignOut();
       localStorage.removeItem('firebaseToken');
       // Xóa cookie khi đăng xuất
@@ -173,6 +171,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         description: "There was a problem signing out.",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
