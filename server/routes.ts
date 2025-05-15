@@ -8,28 +8,7 @@ import { z } from "zod";
 export async function registerRoutes(app: Express): Promise<Server> {
   initFirebaseAdmin();
 
-  const verifyToken = async (req: any, res: any, next: any) => {
-    if (req.path.endsWith('.png') || req.path.endsWith('.json') || req.path.endsWith('.ico')) {
-      return next();
-    }
-
-    const token = req.cookies.firebaseToken || req.headers.authorization?.split("Bearer ")[1];
-    if (!token) {
-      return res.status(401).json({ message: "No authorization token provided" });
-    }
-
-    try {
-      const decodedToken = await auth.verifyIdToken(token, true);
-      req.user = decodedToken;
-      next();
-    } catch (error) {
-      console.error("Error verifying token:", error);
-      return res.status(401).json({ message: "Invalid or expired token" });
-    }
-  };
-
-  app.use('/api', verifyToken);
-
+  // Đặt route set-token trước middleware verifyToken
   app.post('/api/set-token', (req: any, res: any) => {
     const { token } = req.body;
     if (!token) {
@@ -44,11 +23,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       sameSite: isProduction ? 'none' : 'lax',
       maxAge: 3600000, // 1 hour
       path: '/',
-      domain: isProduction ? process.env.COOKIE_DOMAIN : 'localhost'
+      domain: isProduction ? process.env.COOKIE_DOMAIN : undefined
     });
     
     res.json({ success: true });
   });
+
+  const verifyToken = async (req: any, res: any, next: any) => {
+    if (req.path === '/api/set-token' || req.path.endsWith('.png') || req.path.endsWith('.json') || req.path.endsWith('.ico')) {
+      return next();
+    }
+
+    const token = req.cookies.firebaseToken || req.headers.authorization?.split("Bearer ")[1];
+    if (!token) {
+      return res.status(401).json({ message: "No authorization token provided" });
+    }
+
+    try {
+      const decodedToken = await auth.verifyIdToken(token);
+      req.user = decodedToken;
+      next();
+    } catch (error) {
+      console.error("Error verifying token:", error);
+      return res.status(401).json({ message: "Invalid or expired token" });
+    }
+  };
+
+  app.use('/api', verifyToken);
 
   const httpServer = createServer(app);
   return httpServer;

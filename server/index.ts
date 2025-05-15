@@ -11,19 +11,33 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Cấu hình CORS
-app.use(cors({
-  origin: true,
+// Cấu hình CORS với options cụ thể hơn
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.CLIENT_URL 
+    : ['http://localhost:5173', 'http://localhost:5000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
-}));
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  exposedHeaders: ['set-cookie']
+};
 
-// Phục vụ file tĩnh từ client/public/
-app.use(express.static(path.join(__dirname, '../client/public')));
+app.use(cors(corsOptions));
+
+// Middleware
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Headers bảo mật
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+  next();
+});
+
+// Phục vụ file tĩnh
+app.use(express.static(path.join(__dirname, '../client/public')));
 
 app.use((req, res, next) => {
   const start = Date.now();

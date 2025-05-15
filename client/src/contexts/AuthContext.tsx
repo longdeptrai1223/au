@@ -32,80 +32,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let isSubscribed = true;
 
     const handleAuth = async (authUser: User | null) => {
-      console.log('Starting auth process:', { authUser: !!authUser });
       try {
         if (authUser) {
-          // Lấy token
           const token = await authUser.getIdToken(true);
-          console.log('Token obtained:', token.substring(0, 10) + '...');
-          
-          // Lưu token vào localStorage
-          localStorage.setItem('firebaseToken', token);
           
           // Gửi token lên server
           const response = await fetch('/api/set-token', {
             method: 'POST',
             credentials: 'include',
-            body: JSON.stringify({ token }),
             headers: { 
               'Content-Type': 'application/json',
-              'Accept': 'application/json'
             },
-          });
-          
-          console.log('Server response:', {
-            status: response.status,
-            ok: response.ok,
-            headers: Object.fromEntries(response.headers.entries())
+            body: JSON.stringify({ token })
           });
 
           if (!response.ok) {
             throw new Error(`Server responded with status: ${response.status}`);
           }
 
-          // Set user state trước khi lấy profile
+          // Lưu token vào localStorage sau khi server xác nhận
+          localStorage.setItem('firebaseToken', token);
+          
           if (isSubscribed) {
             setUser(authUser);
-          }
-          
-          // Lấy user profile
-          try {
             const profile = await createUserProfile(authUser);
-            if (isSubscribed) {
-              setUserData(profile);
-              console.log('User profile loaded successfully:', profile);
-              // Xóa chuyển hướng tự động ở đây
-              setLoading(false);
-            }
-          } catch (profileError) {
-            console.error('Error loading user profile:', profileError);
-            toast({
-              title: "Error",
-              description: "Could not load user profile",
-              variant: "destructive",
-            });
+            setUserData(profile);
           }
         } else {
-          console.log('No user found, clearing states');
           if (isSubscribed) {
             setUser(null);
             setUserData(null);
             localStorage.removeItem('firebaseToken');
-            // Xóa chuyển hướng tự động ở đây
-            setLoading(false);
           }
         }
       } catch (error) {
-        console.error('Detailed auth error:', error);
+        console.error('Auth error:', error);
         if (isSubscribed) {
           setUser(null);
           setUserData(null);
           localStorage.removeItem('firebaseToken');
-          toast({
-            title: "Authentication Error",
-            description: "There was a problem with authentication",
-            variant: "destructive",
-          });
+        }
+      } finally {
+        if (isSubscribed) {
           setLoading(false);
         }
       }
