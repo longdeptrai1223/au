@@ -1,3 +1,4 @@
+// client/src/App.tsx
 import { useLocation, Switch, Route } from "wouter";
 import { useEffect } from "react";
 import { useAuth } from "./contexts/AuthContext";
@@ -13,9 +14,15 @@ function App() {
   useEffect(() => {
     if (!loading) {
       const token = localStorage.getItem('firebaseToken');
-      if (user && location === "/login") {
+      console.log('Current location:', location);
+      console.log('Has token:', !!token);
+      console.log('Has user:', !!user);
+      
+      if (user && token && location === "/login") {
+        console.log('Redirecting to home');
         setLocation("/");
       } else if (!user && !token && location !== "/login") {
+        console.log('Redirecting to login');
         setLocation("/login");
       }
     }

@@ -1,3 +1,4 @@
+// client/src/contexts/AuthContext.tsx
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from 'firebase/auth';
 import { auth, onAuthStateChanged, getUserData, createUserProfile, checkReferralCode, addReferral, signInWithGoogle, signOut as firebaseSignOut } from '../lib/firebase';
@@ -28,54 +29,64 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const checkForReferral = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const referralCode = urlParams.get('ref');
-      if (referralCode) {
-        localStorage.setItem('referralCode', referralCode);
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, newUrl);
-      }
-    };
-    
-    checkForReferral();
-
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+      console.log('Auth state changed:', authUser ? 'User logged in' : 'No user');
       try {
         if (authUser) {
+          // Lấy token
           const token = await authUser.getIdToken();
+          console.log('Token obtained successfully');
+          
+          // Lưu token vào localStorage
           localStorage.setItem('firebaseToken', token);
-          await fetch('/api/set-token', {
+          
+          // Gửi token lên server
+          const response = await fetch('/api/set-token', {
             method: 'POST',
             credentials: 'include',
             body: JSON.stringify({ token }),
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
           });
+          
+          if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
+          }
+          
+          console.log('Token set on server successfully');
+          
+          // Set user state
           setUser(authUser);
-          const profile = await createUserProfile(authUser);
-          setUserData(profile);
-          const storedReferralCode = localStorage.getItem('referralCode');
-          if (storedReferralCode && !profile.referredBy) {
-            const referrerId = await checkReferralCode(storedReferralCode);
-            if (referrerId && referrerId !== authUser.uid) {
-              await addReferral(referrerId, authUser.uid);
-              toast({
-                title: "Referral Applied",
-                description: "You've joined through a referral link!",
-              });
-              localStorage.removeItem('referralCode');
-            }
+          
+          // Lấy và set user profile
+          try {
+            const profile = await createUserProfile(authUser);
+            setUserData(profile);
+            console.log('User profile loaded successfully');
+          } catch (profileError) {
+            console.error('Error loading user profile:', profileError);
+            toast({
+              title: "Error",
+              description: "Could not load user profile",
+              variant: "destructive",
+            });
           }
         } else {
+          console.log('No user found, clearing states');
           setUser(null);
           setUserData(null);
           localStorage.removeItem('firebaseToken');
         }
       } catch (error) {
-        console.error("Auth error:", error);
+        console.error('Authentication error:', error);
+        setUser(null);
+        setUserData(null);
+        localStorage.removeItem('firebaseToken');
         toast({
           title: "Authentication Error",
-          description: "There was a problem with authentication.",
+          description: "There was a problem with authentication",
           variant: "destructive",
         });
       } finally {
@@ -102,6 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     try {
       await firebaseSignOut();
+      localStorage.removeItem('firebaseToken');
       toast({
         title: "Signed Out",
         description: "You have been signed out successfully.",
