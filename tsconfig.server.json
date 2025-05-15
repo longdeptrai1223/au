@@ -9,12 +9,8 @@
     "skipLibCheck": true,
     "outDir": "dist/server",
     "rootDir": ".",
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"],
-      "@shared/*": ["./shared/*"]
-    }
+    "baseUrl": "."
   },
-  "include": ["server/**/*", "shared/**/*"],
+  "include": ["server/**/*"],
   "exclude": ["node_modules", "dist", "client"]
 }
